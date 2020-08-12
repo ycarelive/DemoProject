@@ -17,18 +17,20 @@ suspend fun main() {
 //
 //
 //
-//    var continuation = suspend {
-//        println("suspend action")
-//        5
-//    }.createCoroutine(object : Continuation<Int>{
-//        override fun resumeWith(result: Result<Int>) {
-//           println(result)
-//        }
-//
-//        override val context: CoroutineContext
-//            get() = EmptyCoroutineContext
-//
-//    })
+    var continuation = suspend {
+        println("suspend action")
+        5
+    }.createCoroutine(object : Continuation<Int>{
+        override fun resumeWith(result: Result<Int>) {
+           println(result)
+        }
+
+        override val context: CoroutineContext
+            get() = EmptyCoroutineContext
+
+    })
+//    continuation.resume(Unit)
+    //callLaunchCoroutine()
 //    continuation.resumeWith(Result.success(Unit))
 //
 //    GlobalScope.launch(CoroutineName("test-01")+ CoroutineExceptionHandler { coroutineContext, throwable ->
@@ -61,6 +63,7 @@ suspend fun test() = suspendCoroutine<Int> {
 }
 
 class ProducerScope<T>{
+    var a : Int = 0
     suspend fun produce(value : T){
 
     }
@@ -72,15 +75,20 @@ fun <R,T> launchContinue(receiver: R , block : suspend R.()-> T ){
             get() = EmptyCoroutineContext
 
         override fun resumeWith(result: Result<T>) {
-
+            println(result)
         }
 
     })
 }
 
 fun callLaunchCoroutine(){
-    launchContinue(ProducerScope<Int>()){
+    val scope = ProducerScope<Int>()
+    scope.a = 10
+    launchContinue(scope){
+        println(this)
         delay(1000)
+        5
+
     }
 }
 

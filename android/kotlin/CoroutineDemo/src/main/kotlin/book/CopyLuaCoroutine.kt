@@ -1,6 +1,7 @@
 package book
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import java.lang.IllegalStateException
 import java.util.concurrent.atomic.AtomicReference
@@ -12,6 +13,7 @@ import kotlin.coroutines.*
 
 suspend fun main() {
     val producer = Coroutine.create<Unit,Int> {
+        param :Unit ->
         for (i in 0..3){
             println("send: $i")
             yield(i)
@@ -32,6 +34,14 @@ suspend fun main() {
         val result = producer.resume(Unit)
         consumer.resume(result)
     }
+}
+
+/**
+ * 是个挂起函数，但是并不会挂起
+ */
+suspend fun noSuspend() = suspendCoroutine<Int> {
+    continuation ->
+    continuation.resume(5)
 }
 
 
