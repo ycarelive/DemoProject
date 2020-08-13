@@ -60,7 +60,7 @@ class Coroutine<P,R>(
         }
     }
 
-    suspend fun resume(value : P) : R = suspendCoroutine {
+    suspend fun resume(value : P) : R = suspendCoroutine{
         continuation ->
         val previousStatus = status.getAndUpdate{
             when(it){
@@ -83,7 +83,7 @@ class Coroutine<P,R>(
                 previousStatus.continuation.resume(Unit)
             }
             is Status.Yielded<*>->{
-                (previousStatus as? Status.Yielded<P>)?.continuation?.resume(value)
+                (previousStatus as? Status.Yielded<P>)?.continuation?.resume(value) // 疑点：Yield状态时，执行后为什么会走for循环
             }
         }
     }
@@ -123,7 +123,7 @@ class Coroutine<P,R>(
                 }
             }
 
-            (previousStatus as? Status.Resumed<R>)?.continuation?.resume(value)
+            (previousStatus as? Status.Resumed<R>)?.continuation?.resume(value) // 疑点：为什么这个执行后，执行main中的while循环
         }
 
 

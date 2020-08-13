@@ -13,7 +13,7 @@ suspend fun main() {
 //    var list : List<Int> = listOf(1,2,3)
 //    list.take(2)
 //
-//    //suspendCoroutine<> {  }
+
 //
 //
 //
@@ -38,7 +38,6 @@ suspend fun main() {
 //    }) {
 //
 //    }
-
 
 
 

@@ -1,5 +1,9 @@
 package book.five
 
+import kotlinx.coroutines.delay
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.ContinuationInterceptor
@@ -10,6 +14,15 @@ import kotlin.coroutines.CoroutineContext
  *
  * 1： kotlin调度器的实现
  */
+
+
+fun main() {
+    launch(Dispatchers.Default) {
+        println(1)
+        delay(1000)
+        println(2)
+    }
+}
 
 /**
  *
@@ -39,5 +52,33 @@ private class DispatcherContinuation<T>(
         dispatcher.dispatcher {
             delegate.resumeWith(result)
         }
+    }
+}
+
+/**
+ * 基于线程池的调度器实现
+ */
+object DefaultDispatcher : Dispatcher{
+
+    private val threadGroup = ThreadGroup("DefaultDispatcher")
+    private val threadIndex = AtomicInteger(0)
+
+    private val executor = Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors()+1
+    ){runnable ->
+        Thread(threadGroup,runnable,"${threadGroup.name}+worker+${threadIndex.getAndIncrement()}")
+                .apply { isDaemon = true }
+    }
+
+    override fun dispatcher(block: () -> Unit) {
+        executor.submit(block)
+    }
+
+}
+
+object Dispatchers{
+
+    val Default by lazy {
+        DispatcherContext(DefaultDispatcher)
     }
 }
