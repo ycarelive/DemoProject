@@ -17,6 +17,10 @@ suspend fun main() {
 //
 //
 //
+
+    GlobalScope.launch {
+
+    }
     var continuation = suspend {
         println("suspend action")
         5

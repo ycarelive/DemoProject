@@ -4,35 +4,6 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 
-
-abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job , Continuation<T>{
-
-    protected val state = AtomicReference<CoroutineState>()
-
-    override val context: CoroutineContext
-
-    init {
-        state.set(CoroutineState.Incomplete())
-        this.context = context + this
-    }
-
-    val isComplete
-    get() = state.get() is CoroutineState.Complete<*>
-
-    override val isActive: Boolean
-        get() = when (state.get()) {
-            is CoroutineState.Complete<*>,
-            is CoroutineState.Cancelling -> false
-            else -> true
-        }
-
-
-}
-
-
-
-
-
 sealed class DisposableList {
     object Nil : DisposableList()
     class Cons(
@@ -82,9 +53,9 @@ interface Job : CoroutineContext.Element {
 
     val isActive : Boolean
 
-    fun invokeOnCancel(onCancel : OnCancel)
+    fun invokeOnCancel(onCancel : OnCancel) : Disposable
 
-    fun invokeOnComplete(onComplete: OnComplete)
+    fun invokeOnComplete(onComplete: OnComplete) : Disposable
 
     fun cancel()
 

@@ -17,11 +17,11 @@ import kotlin.coroutines.CoroutineContext
 
 
 fun main() {
-    launch(Dispatchers.Default) {
-        println(1)
-        delay(1000)
-        println(2)
-    }
+//    launch(Dispatchers.Default) {
+//        println(1)
+//        delay(1000)
+//        println(2)
+//    }
 }
 
 /**
