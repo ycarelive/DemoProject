@@ -9,10 +9,8 @@ import kotlin.coroutines.CoroutineContext
  * AbstractCoroutine
  */
 
-typealias onComplete = () -> Unit
 
 abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continuation<T> {
-
 
 
     protected val state = AtomicReference<CoroutineState>()
@@ -39,7 +37,7 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
     }
 
     override fun invokeOnComplete(onComplete: OnComplete) : Disposable {
-        return doOnCompleted { }
+        return doOnCompleted { _ -> onComplete() }
     }
 
     override fun cancel() {
@@ -47,7 +45,17 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
     }
 
     override fun remove(disposable: Disposable) {
-        TODO("Not yet implemented")
+        state.updateAndGet{prev ->
+            when(prev){
+                is CoroutineState.Incomplete ->{
+                    CoroutineState.Incomplete().from(prev).with(disposable)
+                }
+                is CoroutineState.Cancelling ->{
+                    CoroutineState.Cancelling().from(prev).with(disposable)
+                }
+                is CoroutineState.Complete<*> -> prev
+            }
+        }
     }
 
     override suspend fun join() {
@@ -55,7 +63,21 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
     }
 
     override fun resumeWith(result: Result<T>) {
-        TODO("Not yet implemented")
+        val newState = state.updateAndGet{prevState ->
+            when(prevState){
+                is CoroutineState.Incomplete,
+                is CoroutineState.Cancelling ->{
+                    CoroutineState.Complete(result.getOrNull(),
+                            result.exceptionOrNull()).from(prevState)
+                }
+                is CoroutineState.Complete<*> ->{
+                    throw java.lang.IllegalStateException("Already Complete!")
+                }
+            }
+
+        }
+        newState.notifyCompletion(result)
+        newState.clear()
     }
 
     @Suppress("UNCHECKED_CAST")

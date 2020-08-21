@@ -88,6 +88,12 @@ sealed class CoroutineState{
         this.disposableList = DisposableList.Nil
     }
 
+    fun <T> notifyCompletion(result : Result<T>){
+        this.disposableList.loopOn<CompletionHandleDispose<T>> {
+            it.onComplete(result)
+        }
+    }
+
 
     class Incomplete : CoroutineState()
     class Cancelling : CoroutineState()
@@ -104,6 +110,4 @@ interface OnCancel {
 
 }
 
-interface OnComplete{
-    fun onComplete()
-}
+typealias OnComplete = () -> Unit
