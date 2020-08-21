@@ -3,10 +3,12 @@ package book.five
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 
 /**
- * AbstractCoroutine
+ * AbstractCoroutine,剖析协程中Job的实现
  */
 
 
@@ -48,18 +50,33 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
         state.updateAndGet{prev ->
             when(prev){
                 is CoroutineState.Incomplete ->{
-                    CoroutineState.Incomplete().from(prev).with(disposable)
+                    CoroutineState.Incomplete().from(prev).without(disposable)
                 }
                 is CoroutineState.Cancelling ->{
-                    CoroutineState.Cancelling().from(prev).with(disposable)
+                    CoroutineState.Cancelling().from(prev).without(disposable)
                 }
                 is CoroutineState.Complete<*> -> prev
             }
         }
     }
 
+    /**
+     * 模拟协程Job函数的实现，主要是在状态的判断
+     */
     override suspend fun join() {
-        TODO("Not yet implemented")
+        when(state.get()){
+            is CoroutineState.Incomplete,
+            is CoroutineState.Cancelling -> {
+                return joinSuspend()
+            }
+            is CoroutineState.Complete<*> -> return
+        }
+    }
+
+    private suspend fun joinSuspend() = suspendCoroutine<Unit> { continuation ->
+        doOnCompleted {result ->
+            continuation.resume(Unit)
+        }
     }
 
     override fun resumeWith(result: Result<T>) {
@@ -83,7 +100,7 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
     @Suppress("UNCHECKED_CAST")
     protected fun doOnCompleted(block : (Result<T>) -> Unit) : Disposable {
         val disposable  = CompletionHandleDispose(this,block)
-        val newState = state.updateAndGet{ prev ->
+        val newState = state.updateAndGet{ prev -> // 这个是一个接口，实际上这里传入的是给接口UnaryOperator的方法apply调用
             when(prev){
                 is CoroutineState.Incomplete ->{
                     CoroutineState.Incomplete().from(prev).with(disposable)
@@ -97,11 +114,11 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
 
         (newState as? CoroutineState.Complete<T>)?.let {
             block(
-                    when{
-                        it.value!=null -> Result.success(it.value)
-                        it.exception!=null -> Result.failure(it.exception)
-                        else -> throw  IllegalStateException("Wont`t Happen")
-                    }
+                when{
+                    it.value!=null -> Result.success(it.value)
+                    it.exception!=null -> Result.failure(it.exception)
+                    else -> throw  IllegalStateException("Wont`t Happen")
+                }
             )
         }
 
