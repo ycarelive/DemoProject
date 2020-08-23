@@ -1,6 +1,5 @@
 package book.five
 
-import kotlinx.coroutines.delay
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -17,11 +16,11 @@ import kotlin.coroutines.CoroutineContext
 
 
 fun main() {
-//    launch(Dispatchers.Default) {
-//        println(1)
-//        delay(1000)
-//        println(2)
-//    }
+    launch() {
+        println(1)
+        delay(1000)
+        println(2)
+    }
 }
 
 /**
@@ -80,5 +79,27 @@ object Dispatchers{
 
     val Default by lazy {
         DispatcherContext(DefaultDispatcher)
+    }
+}
+
+private var coroutineIndex = AtomicInteger(0)
+
+fun newCoroutineContext(context: CoroutineContext) : CoroutineContext{
+    val combined = context + CoroutineName("@coroutine#${coroutineIndex.getAndIncrement()}")
+    return if (combined !==Dispatchers.Default && combined[ContinuationInterceptor]==null){
+        combined + Dispatchers.Default
+    }else {
+        combined
+    }
+}
+
+class CoroutineName(val name : String) : CoroutineContext.Element{
+    companion object Key : CoroutineContext.Key<CoroutineName>
+
+    override val key: CoroutineContext.Key<*>
+        get() = Key
+
+    override fun toString(): String {
+        return name
     }
 }

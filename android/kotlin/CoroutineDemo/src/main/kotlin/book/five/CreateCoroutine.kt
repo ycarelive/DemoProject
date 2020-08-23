@@ -23,7 +23,7 @@ fun launch(
         context: CoroutineContext=EmptyCoroutineContext,
         block : suspend ()->Unit
 ):Job {
-    val completion = StandLoneCoroutine(context)
+    val completion = StandLoneCoroutine(newCoroutineContext(context))
     block.startCoroutine(completion)
     return completion
 }

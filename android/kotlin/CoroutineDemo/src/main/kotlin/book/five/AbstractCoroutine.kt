@@ -1,5 +1,6 @@
 package book.five
 
+import book.five.cancel.coroutine.CancellationHandlerDisposable
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
@@ -34,8 +35,25 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
         else -> true
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun invokeOnCancel(onCancel: OnCancel) : Disposable {
-        TODO("Not yet implemented")
+        val disposable = CancellationHandlerDisposable(this, onCancel)
+        val newState = state.updateAndGet{
+            prev ->
+            when(prev){
+                is CoroutineState.Incomplete ->{
+                    CoroutineState.Incomplete().from(prev).with(disposable)
+                }
+                is CoroutineState.Cancelling,
+                    is CoroutineState.Complete<*> ->{
+                    prev
+                }
+            }
+        }
+        (newState as? CoroutineState.Complete<T>)?.let {
+            onCancel()
+        }
+        return disposable
     }
 
     override fun invokeOnComplete(onComplete: OnComplete) : Disposable {
@@ -43,7 +61,24 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
     }
 
     override fun cancel() {
-        TODO("Not yet implemented")
+        val preState = state.getAndUpdate {
+            prev ->
+            when(prev){
+                is CoroutineState.Incomplete -> {
+                    CoroutineState.Cancelling()
+                }
+                is CoroutineState.Cancelling,
+                is CoroutineState.Complete<*> -> {
+                    prev
+                }
+            }
+        }
+
+        if (preState is CoroutineState.Incomplete){
+            preState.notifyCancellation()
+            preState.clear()
+        }
+        //parentCancelDisposable
     }
 
     override fun remove(disposable: Disposable) {

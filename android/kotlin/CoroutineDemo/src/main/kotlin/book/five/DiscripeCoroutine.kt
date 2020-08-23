@@ -1,5 +1,6 @@
 package book.five
 
+import book.five.cancel.coroutine.CancellationHandlerDisposable
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
@@ -94,6 +95,12 @@ sealed class CoroutineState{
         }
     }
 
+    fun notifyCancellation(){
+        this.disposableList.loopOn<CancellationHandlerDisposable> {
+            it.onCancel
+        }
+    }
+
 
     class Incomplete : CoroutineState()
     class Cancelling : CoroutineState()
@@ -104,10 +111,8 @@ interface Disposable{
     fun disposable()
 }
 
-interface OnCancel {
+typealias CancellationException = java.util.concurrent.CancellationException
 
-    fun onCancel()
-
-}
+typealias OnCancel = () -> Unit
 
 typealias OnComplete = () -> Unit
