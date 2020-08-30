@@ -29,7 +29,15 @@ fun launch(
 }
 
 
-class StandLoneCoroutine(context: CoroutineContext ) : AbstractCoroutine<Unit>(context)
+class StandLoneCoroutine(context: CoroutineContext ) : AbstractCoroutine<Unit>(context) {
+    override fun handleJobException(e: Throwable): Boolean {
+        super.handleJobException(e)
+        context[CoroutineExceptionHandler]?.handleException(context , e)?:Thread.currentThread().let {
+            it.uncaughtExceptionHandler.uncaughtException(it,e)
+        }
+        return true
+    }
+}
 
 class  CompletionHandleDispose<T>(
         val job: Job ,

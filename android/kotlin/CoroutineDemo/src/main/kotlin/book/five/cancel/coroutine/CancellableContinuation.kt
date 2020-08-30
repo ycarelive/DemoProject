@@ -7,6 +7,7 @@ import java.lang.Exception
 import java.lang.IllegalStateException
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resumeWithException
 
 /**
@@ -72,6 +73,46 @@ class CancellableContinuation <T>(private val continuation: CancellableContinuat
         if (prevState is CancelState.CancelHandler) {
             prevState.onCancel()
             resumeWithException(CancellationException("Cancelled."))
+        }
+    }
+
+    fun getResult(): Any? {
+        installCancelHandler()
+
+        if(decision.compareAndSet(CancelDecision.UNDECIDED, CancelDecision.SUSPENDED))
+            return COROUTINE_SUSPENDED
+
+        return when (val currentState = state.get()) {
+            is CancelState.CancelHandler,
+            CancelState.InComplete -> COROUTINE_SUSPENDED
+            CancelState.Cancelled -> throw CancellationException("Continuation is cancelled.")
+            is CancelState.Complete<*> -> {
+                (currentState as CancelState.Complete<T>).let {
+                    it.exception?.let { throw it } ?: it.value
+                }
+            }
+        }
+    }
+
+    override fun resumeWith(result: Result<T>) {
+        when {
+            decision.compareAndSet(CancelDecision.UNDECIDED, CancelDecision.RESUMED) -> {
+                // before getResult called.
+                state.set(CancelState.Complete(result.getOrNull(), result.exceptionOrNull()))
+            }
+            decision.compareAndSet(CancelDecision.SUSPENDED, CancelDecision.RESUMED) -> {
+                state.updateAndGet { prev ->
+                    when (prev) {
+                        is CancelState.Complete<*> -> {
+                            throw IllegalStateException("Already completed.")
+                        }
+                        else -> {
+                            CancelState.Complete(result.getOrNull(), result.exceptionOrNull())
+                        }
+                    }
+                }
+                continuation.resumeWith(result)
+            }
         }
     }
 }

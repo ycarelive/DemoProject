@@ -20,6 +20,8 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
 
     override val context: CoroutineContext
 
+    protected open fun handleJobException(e : Throwable) = false
+
     init {
         state.set(CoroutineState.Incomplete())
         this.context = context + this
@@ -114,6 +116,7 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun resumeWith(result: Result<T>) {
         val newState = state.updateAndGet{prevState ->
             when(prevState){
@@ -128,6 +131,7 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
             }
 
         }
+        (newState as CoroutineState.Complete<T>).exception?.let(this::tryHandleException)
         newState.notifyCompletion(result)
         newState.clear()
     }
@@ -158,5 +162,14 @@ abstract class AbstractCoroutine <T>(context: CoroutineContext) : Job , Continua
         }
 
         return disposable
+    }
+
+    private fun tryHandleException(e : Throwable):Boolean{
+        return when(e){
+            is CancellationException->{
+                false
+            }
+            else -> handleJobException(e)
+        }
     }
 }

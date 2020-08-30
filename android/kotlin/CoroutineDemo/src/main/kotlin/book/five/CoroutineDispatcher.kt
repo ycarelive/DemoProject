@@ -86,11 +86,12 @@ private var coroutineIndex = AtomicInteger(0)
 
 fun newCoroutineContext(context: CoroutineContext) : CoroutineContext{
     val combined = context + CoroutineName("@coroutine#${coroutineIndex.getAndIncrement()}")
-    return if (combined !==Dispatchers.Default && combined[ContinuationInterceptor]==null){
-        combined + Dispatchers.Default
-    }else {
-        combined
-    }
+//    return if (combined !==Dispatchers.Default && combined[ContinuationInterceptor]==null){
+//        combined + Dispatchers.Default
+//    }else {
+//        combined
+//    }
+    return combined
 }
 
 class CoroutineName(val name : String) : CoroutineContext.Element{
