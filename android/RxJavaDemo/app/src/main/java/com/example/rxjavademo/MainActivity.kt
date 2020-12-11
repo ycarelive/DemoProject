@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         //createByFromArray()
         //createByIterable()
         hello_world.setOnClickListener {
-            operatorByBuffer()
+            operatorByDoSeries()
         }
     }
 }
